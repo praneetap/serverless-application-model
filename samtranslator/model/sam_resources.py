@@ -17,24 +17,13 @@ from samtranslator.model.dynamodb import DynamoDBTable
 from samtranslator.model.exceptions import InvalidEventException, InvalidResourceException
 from samtranslator.model.function_policies import FunctionPolicies, PolicyTypes
 from samtranslator.model.iam import IAMRole, IAMRolePolicies
-from samtranslator.model.lambda_ import (
-    LambdaFunction,
-    LambdaVersion,
-    LambdaAlias,
-    LambdaLayerVersion,
-    LambdaEventInvokeConfig,
-)
+from samtranslator.model.lambda_ import (LambdaFunction, LambdaVersion, LambdaAlias,
+                                         LambdaLayerVersion, LambdaEventInvokeConfig)
 from samtranslator.model.types import dict_of, is_str, is_type, list_of, one_of, any_type
 from samtranslator.translator import logical_id_generator
 from samtranslator.translator.arn_generator import ArnGenerator
-from samtranslator.model.intrinsics import (
-    is_intrinsic_if,
-    is_intrinsic_no_value,
-    ref,
-    make_not_conditional,
-    make_conditional,
-    make_and_condition,
-)
+from samtranslator.model.intrinsics import (is_intrinsic_if, is_intrinsic_no_value, ref,
+                                            make_not_conditional, make_conditional, make_and_condition)
 from samtranslator.model.sqs import SQSQueue
 from samtranslator.model.sns import SNSTopic
 
@@ -45,29 +34,29 @@ class SamFunction(SamResourceMacro):
 
     resource_type = "AWS::Serverless::Function"
     property_types = {
-        "FunctionName": PropertyType(False, one_of(is_str(), is_type(dict))),
-        "Handler": PropertyType(True, is_str()),
-        "Runtime": PropertyType(True, is_str()),
-        "CodeUri": PropertyType(False, one_of(is_str(), is_type(dict))),
-        "InlineCode": PropertyType(False, one_of(is_str(), is_type(dict))),
-        "DeadLetterQueue": PropertyType(False, is_type(dict)),
-        "Description": PropertyType(False, is_str()),
-        "MemorySize": PropertyType(False, is_type(int)),
-        "Timeout": PropertyType(False, is_type(int)),
-        "VpcConfig": PropertyType(False, is_type(dict)),
-        "Role": PropertyType(False, is_str()),
-        "AssumeRolePolicyDocument": PropertyType(False, is_type(dict)),
-        "Policies": PropertyType(False, one_of(is_str(), list_of(one_of(is_str(), is_type(dict), is_type(dict))))),
-        "PermissionsBoundary": PropertyType(False, is_str()),
-        "Environment": PropertyType(False, dict_of(is_str(), is_type(dict))),
-        "Events": PropertyType(False, dict_of(is_str(), is_type(dict))),
-        "Tags": PropertyType(False, is_type(dict)),
-        "Tracing": PropertyType(False, one_of(is_type(dict), is_str())),
-        "KmsKeyArn": PropertyType(False, one_of(is_type(dict), is_str())),
-        "DeploymentPreference": PropertyType(False, is_type(dict)),
-        "ReservedConcurrentExecutions": PropertyType(False, any_type()),
-        "Layers": PropertyType(False, list_of(one_of(is_str(), is_type(dict)))),
-        "EventInvokeConfig": PropertyType(False, is_type(dict)),
+        'FunctionName': PropertyType(False, one_of(is_str(), is_type(dict))),
+        'Handler': PropertyType(True, is_str()),
+        'Runtime': PropertyType(True, is_str()),
+        'CodeUri': PropertyType(False, one_of(is_str(), is_type(dict))),
+        'InlineCode': PropertyType(False, one_of(is_str(), is_type(dict))),
+        'DeadLetterQueue': PropertyType(False, is_type(dict)),
+        'Description': PropertyType(False, is_str()),
+        'MemorySize': PropertyType(False, is_type(int)),
+        'Timeout': PropertyType(False, is_type(int)),
+        'VpcConfig': PropertyType(False, is_type(dict)),
+        'Role': PropertyType(False, is_str()),
+        'Policies': PropertyType(False, one_of(is_str(), list_of(one_of(is_str(), is_type(dict), is_type(dict))))),
+        'PermissionsBoundary': PropertyType(False, is_str()),
+        'Environment': PropertyType(False, dict_of(is_str(), is_type(dict))),
+        'Events': PropertyType(False, dict_of(is_str(), is_type(dict))),
+        'Tags': PropertyType(False, is_type(dict)),
+        'Tracing': PropertyType(False, one_of(is_type(dict), is_str())),
+        'KmsKeyArn': PropertyType(False, one_of(is_type(dict), is_str())),
+        'DeploymentPreference': PropertyType(False, is_type(dict)),
+        'ReservedConcurrentExecutions': PropertyType(False, any_type()),
+        'Layers': PropertyType(False, list_of(one_of(is_str(), is_type(dict)))),
+        'EventInvokeConfig': PropertyType(False, is_type(dict)),
+
         # Intrinsic functions in value of Alias property are not supported, yet
         "AutoPublishAlias": PropertyType(False, one_of(is_str())),
         "VersionDescription": PropertyType(False, is_str()),
@@ -81,7 +70,7 @@ class SamFunction(SamResourceMacro):
     )
 
     # DeadLetterQueue
-    dead_letter_queue_policy_actions = {"SQS": "sqs:SendMessage", "SNS": "sns:Publish"}
+    dead_letter_queue_policy_actions = {'SQS': 'sqs:SendMessage', 'SNS': 'sns:Publish'}
     #
 
     # Conditions
@@ -93,7 +82,7 @@ class SamFunction(SamResourceMacro):
         "Version": LambdaVersion.resource_type,
         # EventConfig auto created SQS and SNS
         "DestinationTopic": SNSTopic.resource_type,
-        "DestinationQueue": SQSQueue.resource_type,
+        "DestinationQueue": SQSQueue.resource_type
     }
 
     def resources_to_link(self, resources):
@@ -138,18 +127,17 @@ class SamFunction(SamResourceMacro):
             resources.append(lambda_alias)
 
         if self.DeploymentPreference:
-            self._validate_deployment_preference_and_add_update_policy(
-                kwargs.get("deployment_preference_collection", None),
-                lambda_alias,
-                intrinsics_resolver,
-                mappings_resolver,
-            )
+            self._validate_deployment_preference_and_add_update_policy(kwargs.get('deployment_preference_collection',
+                                                                                  None),
+                                                                       lambda_alias, intrinsics_resolver,
+                                                                       mappings_resolver)
         event_invoke_policies = []
         if self.EventInvokeConfig:
             function_name = lambda_function.logical_id
-            event_invoke_resources, event_invoke_policies = self._construct_event_invoke_config(
-                function_name, alias_name, intrinsics_resolver, conditions
-            )
+            event_invoke_resources, event_invoke_policies = self._construct_event_invoke_config(function_name,
+                                                                                                alias_name,
+                                                                                                intrinsics_resolver,
+                                                                                                conditions)
             resources.extend(event_invoke_resources)
 
         managed_policy_map = kwargs.get("managed_policy_map", {})
@@ -159,7 +147,7 @@ class SamFunction(SamResourceMacro):
         execution_role = None
         if lambda_function.Role is None:
             execution_role = self._construct_role(managed_policy_map, event_invoke_policies)
-            lambda_function.Role = execution_role.get_runtime_attr("arn")
+            lambda_function.Role = execution_role.get_runtime_attr('arn')
             resources.append(execution_role)
 
         try:
@@ -185,24 +173,24 @@ class SamFunction(SamResourceMacro):
         lambda_event_invoke_config = LambdaEventInvokeConfig(logical_id=logical_id, attributes=self.resource_attributes)
 
         dest_config = {}
-        input_dest_config = resolved_event_invoke_config.get("DestinationConfig")
-        if input_dest_config and input_dest_config.get("OnSuccess") is not None:
-            resource, on_success, policy = self._validate_and_inject_resource(
-                input_dest_config.get("OnSuccess"), "OnSuccess", logical_id, conditions
-            )
-            dest_config["OnSuccess"] = on_success
-            self.EventInvokeConfig["DestinationConfig"]["OnSuccess"]["Destination"] = on_success.get("Destination")
+        input_dest_config = resolved_event_invoke_config.get('DestinationConfig')
+        if input_dest_config and \
+           input_dest_config.get('OnSuccess') is not None:
+            resource, on_success, policy = self._validate_and_inject_resource(input_dest_config.get('OnSuccess'),
+                                                                              "OnSuccess", logical_id, conditions)
+            dest_config['OnSuccess'] = on_success
+            self.EventInvokeConfig['DestinationConfig']['OnSuccess']['Destination'] = on_success.get('Destination')
             if resource is not None:
                 resources.extend([resource])
             if policy is not None:
                 policy_document.append(policy)
 
-        if input_dest_config and input_dest_config.get("OnFailure") is not None:
-            resource, on_failure, policy = self._validate_and_inject_resource(
-                input_dest_config.get("OnFailure"), "OnFailure", logical_id, conditions
-            )
-            dest_config["OnFailure"] = on_failure
-            self.EventInvokeConfig["DestinationConfig"]["OnFailure"]["Destination"] = on_failure.get("Destination")
+        if input_dest_config and \
+           input_dest_config.get('OnFailure') is not None:
+            resource, on_failure, policy = self._validate_and_inject_resource(input_dest_config.get('OnFailure'),
+                                                                              "OnFailure", logical_id, conditions)
+            dest_config['OnFailure'] = on_failure
+            self.EventInvokeConfig['DestinationConfig']['OnFailure']['Destination'] = on_failure.get('Destination')
             if resource is not None:
                 resources.extend([resource])
             if policy is not None:
@@ -212,12 +200,11 @@ class SamFunction(SamResourceMacro):
         if lambda_alias:
             lambda_event_invoke_config.Qualifier = lambda_alias
         else:
-            lambda_event_invoke_config.Qualifier = "$LATEST"
+            lambda_event_invoke_config.Qualifier = '$LATEST'
         lambda_event_invoke_config.DestinationConfig = dest_config
-        lambda_event_invoke_config.MaximumEventAgeInSeconds = resolved_event_invoke_config.get(
-            "MaximumEventAgeInSeconds"
-        )
-        lambda_event_invoke_config.MaximumRetryAttempts = resolved_event_invoke_config.get("MaximumRetryAttempts")
+        lambda_event_invoke_config.MaximumEventAgeInSeconds = \
+            resolved_event_invoke_config.get('MaximumEventAgeInSeconds')
+        lambda_event_invoke_config.MaximumRetryAttempts = resolved_event_invoke_config.get('MaximumRetryAttempts')
         resources.extend([lambda_event_invoke_config])
 
         return resources, policy_document
@@ -229,50 +216,47 @@ class SamFunction(SamResourceMacro):
         ARN property, so to handle conditional ifs we have to inject if conditions in the auto created
         SQS/SNS resources as well as in the policy documents.
         """
-        accepted_types_list = ["SQS", "SNS", "EventBridge", "Lambda"]
-        auto_inject_list = ["SQS", "SNS"]
+        accepted_types_list = ['SQS', 'SNS', 'EventBridge', 'Lambda']
+        auto_inject_list = ['SQS', 'SNS']
         resource = None
         policy = {}
         destination = {}
-        destination["Destination"] = dest_config.get("Destination")
+        destination['Destination'] = dest_config.get('Destination')
 
         resource_logical_id = logical_id + event
-        if dest_config.get("Type") is None or dest_config.get("Type") not in accepted_types_list:
-            raise InvalidResourceException(
-                self.logical_id, "'Type: {}' must be one of {}".format(dest_config.get("Type"), accepted_types_list)
-            )
+        if dest_config.get('Type') is None or \
+           dest_config.get('Type') not in accepted_types_list:
+            raise InvalidResourceException(self.logical_id,
+                                           "'Type: {}' must be one of {}"
+                                           .format(dest_config.get('Type'), accepted_types_list))
 
-        property_condition, dest_arn = self._get_or_make_condition(
-            dest_config.get("Destination"), logical_id, conditions
-        )
-        if dest_config.get("Destination") is None or property_condition is not None:
-            combined_condition = self._make_and_conditions(
-                self.get_passthrough_resource_attributes(), property_condition, conditions
-            )
-            if dest_config.get("Type") in auto_inject_list:
-                if dest_config.get("Type") == "SQS":
-                    resource = SQSQueue(resource_logical_id + "Queue")
-                if dest_config.get("Type") == "SNS":
-                    resource = SNSTopic(resource_logical_id + "Topic")
+        property_condition, dest_arn = self._get_or_make_condition(dest_config.get('Destination'),
+                                                                   logical_id, conditions)
+        if dest_config.get('Destination') is None or property_condition is not None:
+            combined_condition = self._make_and_conditions(self.get_passthrough_resource_attributes(),
+                                                           property_condition, conditions)
+            if dest_config.get('Type') in auto_inject_list:
+                if dest_config.get('Type') == 'SQS':
+                    resource = SQSQueue(resource_logical_id + 'Queue')
+                if dest_config.get('Type') == 'SNS':
+                    resource = SNSTopic(resource_logical_id + 'Topic')
                 if combined_condition:
-                    resource.set_resource_attribute("Condition", combined_condition)
+                    resource.set_resource_attribute('Condition', combined_condition)
                 if property_condition:
-                    destination["Destination"] = make_conditional(
-                        property_condition, resource.get_runtime_attr("arn"), dest_arn
-                    )
+                    destination['Destination'] = make_conditional(property_condition,
+                                                                  resource.get_runtime_attr('arn'),
+                                                                  dest_arn)
                 else:
-                    destination["Destination"] = resource.get_runtime_attr("arn")
-                policy = self._add_event_invoke_managed_policy(
-                    dest_config, resource_logical_id, property_condition, destination["Destination"]
-                )
+                    destination['Destination'] = resource.get_runtime_attr('arn')
+                policy = self._add_event_invoke_managed_policy(dest_config, resource_logical_id, property_condition,
+                                                               destination['Destination'])
             else:
-                raise InvalidResourceException(
-                    self.logical_id, "Destination is required if Type is not {}".format(auto_inject_list)
-                )
-        if dest_config.get("Destination") is not None and property_condition is None:
-            policy = self._add_event_invoke_managed_policy(
-                dest_config, resource_logical_id, None, dest_config.get("Destination")
-            )
+                raise InvalidResourceException(self.logical_id,
+                                               "Destination is required if Type is not {}"
+                                               .format(auto_inject_list))
+        if dest_config.get('Destination') is not None and property_condition is None:
+            policy = self._add_event_invoke_managed_policy(dest_config, resource_logical_id,
+                                                           None, dest_config.get('Destination'))
 
         return resource, destination, policy
 
@@ -281,12 +265,11 @@ class SamFunction(SamResourceMacro):
             return property_condition
 
         if property_condition is None:
-            return resource_condition["Condition"]
+            return resource_condition['Condition']
 
-        and_condition = make_and_condition([resource_condition, {"Condition": property_condition}])
-        condition_name = self._make_gen_condition_name(
-            resource_condition.get("Condition") + "AND" + property_condition, self.logical_id
-        )
+        and_condition = make_and_condition([resource_condition, {'Condition': property_condition}])
+        condition_name = self._make_gen_condition_name(resource_condition.get('Condition') + 'AND' + property_condition,
+                                                       self.logical_id)
         conditions[condition_name] = and_condition
 
         return condition_name
@@ -308,14 +291,14 @@ class SamFunction(SamResourceMacro):
         if destination is None:
             return None, None
         if is_intrinsic_if(destination):
-            dest_list = destination.get("Fn::If")
+            dest_list = destination.get('Fn::If')
             if is_intrinsic_no_value(dest_list[1]) and is_intrinsic_no_value(dest_list[2]):
                 return None, None
             if is_intrinsic_no_value(dest_list[1]):
                 return dest_list[0], dest_list[2]
             if is_intrinsic_no_value(dest_list[2]):
                 condition = dest_list[0]
-                not_condition = self._make_gen_condition_name("NOT" + condition, logical_id)
+                not_condition = self._make_gen_condition_name('NOT' + condition, logical_id)
                 conditions[not_condition] = make_not_conditional(condition)
                 return not_condition, dest_list[1]
         return None, None
@@ -389,16 +372,19 @@ class SamFunction(SamResourceMacro):
 
     def _add_event_invoke_managed_policy(self, dest_config, logical_id, condition, dest_arn):
         policy = {}
-        if dest_config and dest_config.get("Type"):
-            if dest_config.get("Type") == "SQS":
-                policy = IAMRolePolicies.sqs_send_message_role_policy(dest_arn, logical_id)
-            if dest_config.get("Type") == "SNS":
-                policy = IAMRolePolicies.sns_publish_role_policy(dest_arn, logical_id)
+        if dest_config and dest_config.get('Type'):
+            if dest_config.get('Type') == 'SQS':
+                policy = IAMRolePolicies.sqs_send_message_role_policy(dest_arn,
+                                                                      logical_id)
+            if dest_config.get('Type') == 'SNS':
+                policy = IAMRolePolicies.sns_publish_role_policy(dest_arn,
+                                                                 logical_id)
             # Event Bridge and Lambda Arns are passthrough.
-            if dest_config.get("Type") == "EventBridge":
+            if dest_config.get('Type') == 'EventBridge':
                 policy = IAMRolePolicies.event_bus_put_events_role_policy(dest_arn, logical_id)
-            if dest_config.get("Type") == "Lambda":
-                policy = IAMRolePolicies.lambda_invoke_function_role_policy(dest_arn, logical_id)
+            if dest_config.get('Type') == 'Lambda':
+                policy = IAMRolePolicies.lambda_invoke_function_role_policy(dest_arn,
+                                                                            logical_id)
         return policy
 
     def _construct_role(self, managed_policy_map, event_invoke_policies):

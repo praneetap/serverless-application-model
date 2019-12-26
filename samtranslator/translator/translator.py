@@ -104,21 +104,17 @@ class Translator:
         changed_logical_ids = {}
         for logical_id, resource_dict in self._get_resources_to_iterate(sam_template, macro_resolver):
             try:
-                macro = macro_resolver.resolve_resource_type(resource_dict).from_dict(
-                    logical_id, resource_dict, sam_plugins=sam_plugins
-                )
+                macro = macro_resolver\
+                    .resolve_resource_type(resource_dict)\
+                    .from_dict(logical_id, resource_dict, sam_plugins=sam_plugins)
 
-                kwargs = macro.resources_to_link(sam_template["Resources"])
-                kwargs["managed_policy_map"] = self.managed_policy_map
-                kwargs["intrinsics_resolver"] = intrinsics_resolver
-                kwargs["mappings_resolver"] = mappings_resolver
-                kwargs["deployment_preference_collection"] = deployment_preference_collection
-                kwargs["conditions"] = template.get("Conditions")
-                # add the value of FunctionName property if the function is referenced with the api resource
-                self.redeploy_restapi_parameters["function_names"] = self._get_function_names(
-                    resource_dict, intrinsics_resolver
-                )
-                kwargs["redeploy_restapi_parameters"] = self.redeploy_restapi_parameters
+                kwargs = macro.resources_to_link(sam_template['Resources'])
+                kwargs['managed_policy_map'] = self.managed_policy_map
+                kwargs['intrinsics_resolver'] = intrinsics_resolver
+                kwargs['mappings_resolver'] = mappings_resolver
+                kwargs['deployment_preference_collection'] = deployment_preference_collection
+                kwargs['conditions'] = template.get('Conditions')
+
                 translated = macro.to_cloudformation(**kwargs)
 
                 supported_resource_refs = macro.get_resource_references(translated, supported_resource_refs)

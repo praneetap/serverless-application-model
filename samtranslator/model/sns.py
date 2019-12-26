@@ -15,6 +15,10 @@ class SNSSubscription(Resource):
 
 
 class SNSTopic(Resource):
-    resource_type = "AWS::SNS::Topic"
-    property_types = {"TopicName": PropertyType(False, is_str())}
-    runtime_attrs = {"arn": lambda self: ref(self.logical_id)}
+    resource_type = 'AWS::SNS::Topic'
+    property_types = {
+        'TopicName': PropertyType(False, is_str())
+    }
+    runtime_attrs = {
+        "arn": lambda self: ref(self.logical_id)
+    }
