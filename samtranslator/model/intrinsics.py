@@ -21,25 +21,15 @@ def fnOr(argument_list):
 
 
 def fnAnd(argument_list):
-    return {'Fn::And': argument_list}
+    return {"Fn::And": argument_list}
 
 
-def make_conditional(condition, true_data, false_data={'Ref': 'AWS::NoValue'}):
-    return {
-        'Fn::If': [
-            condition,
-            true_data,
-            false_data
-        ]
-    }
+def make_conditional(condition, true_data, false_data={"Ref": "AWS::NoValue"}):
+    return {"Fn::If": [condition, true_data, false_data]}
 
 
 def make_not_conditional(condition):
-    return {
-        'Fn::Not': [
-            {'Condition': condition}
-        ]
-    }
+    return {"Fn::Not": [{"Condition": condition}]}
 
 
 def make_condition_or_list(conditions_list):

@@ -1,13 +1,5 @@
 {
   "Conditions": {
-    "TopicCreationEnabled": {
-      "Fn::Equals": [
-        {
-          "Ref": "CreateSNSTopic"
-        }, 
-        true
-      ]
-    }, 
     "NOTQueueCreationDisabled2da03e5b6f": {
       "Fn::Not": [
         {
@@ -32,18 +24,6 @@
         true, 
         false
       ]
-    }, 
-    "CreateSNSTopic": {
-      "Default": true, 
-      "Type": "String", 
-      "AllowedValues": [
-        true, 
-        false
-      ]
-    }, 
-    "SQSArn": {
-      "Default": "my-sqs-arn", 
-      "Type": "String"
     }
   }, 
   "Resources": {
@@ -85,7 +65,12 @@
                           "Arn"
                         ]
                       }, 
-                      "my-sqs-arn"
+                      {
+                        "Fn::GetAtt": [
+                          "DestinationSQS", 
+                          "Arn"
+                        ]
+                      }
                     ]
                   }, 
                   "Effect": "Allow"
@@ -94,18 +79,15 @@
             }
           }, 
           {
-            "PolicyName": "MyTestFunctionEventInvokeConfigOnFailureSNSPolicy", 
+            "PolicyName": "MyTestFunctionEventInvokeConfigOnFailureLambdaPolicy", 
             "PolicyDocument": {
               "Statement": [
                 {
-                  "Action": "sns:publish", 
+                  "Action": "lambda:InvokeFunction", 
                   "Resource": {
-                    "Fn::If": [
-                      "TopicCreationEnabled", 
-                      {
-                        "Ref": "MyTestFunctionEventInvokeConfigOnFailureTopic"
-                      }, 
-                      "SOME-SNS-ARN"
+                    "Fn::GetAtt": [
+                      "DestinationLambda", 
+                      "Arn"
                     ]
                   }, 
                   "Effect": "Allow"
@@ -127,17 +109,6 @@
       "Properties": {}, 
       "Condition": "NOTQueueCreationDisabled2da03e5b6f"
     }, 
-    "SNSSubscription": {
-      "Type": "AWS::SNS::Subscription", 
-      "Properties": {
-        "Endpoint": "example@example.com", 
-        "Protocol": "email", 
-        "TopicArn": {
-          "Ref": "MyTestFunctionEventInvokeConfigOnFailureTopic"
-        }
-      }, 
-      "Condition": "TopicCreationEnabled"
-    }, 
     "MyTestFunctionEventInvokeConfig": {
       "Type": "AWS::Lambda::EventInvokeConfig", 
       "Properties": {
@@ -154,18 +125,20 @@
                     "Arn"
                   ]
                 }, 
-                "my-sqs-arn"
+                {
+                  "Fn::GetAtt": [
+                    "DestinationSQS", 
+                    "Arn"
+                  ]
+                }
               ]
             }
           }, 
           "OnFailure": {
             "Destination": {
-              "Fn::If": [
-                "TopicCreationEnabled", 
-                {
-                  "Ref": "MyTestFunctionEventInvokeConfigOnFailureTopic"
-                }, 
-                "SOME-SNS-ARN"
+              "Fn::GetAtt": [
+                "DestinationLambda", 
+                "Arn"
               ]
             }
           }
@@ -175,6 +148,10 @@
         }, 
         "Qualifier": "$LATEST"
       }
+    }, 
+    "DestinationSQS": {
+      "Type": "AWS::SQS::Queue", 
+      "Condition": "QueueCreationDisabled"
     }, 
     "MyTestFunction2Role": {
       "Type": "AWS::IAM::Role", 
@@ -200,16 +177,13 @@
         ], 
         "Policies": [
           {
-            "PolicyName": "MyTestFunction2EventInvokeConfigOnSuccessLambdaPolicy", 
+            "PolicyName": "MyTestFunction2EventInvokeConfigOnSuccessSNSPolicy", 
             "PolicyDocument": {
               "Statement": [
                 {
-                  "Action": "lambda:InvokeFunction", 
+                  "Action": "sns:publish", 
                   "Resource": {
-                    "Fn::GetAtt": [
-                      "DestinationLambda", 
-                      "Arn"
-                    ]
+                    "Ref": "MyTestFunction2EventInvokeConfigOnSuccessTopic"
                   }, 
                   "Effect": "Allow"
                 }
@@ -222,7 +196,9 @@
               "Statement": [
                 {
                   "Action": "events:PutEvents", 
-                  "Resource": "event-bus-arn", 
+                  "Resource": {
+                    "Fn::Sub": "arn:aws:events:ap-southeast-1:${AWS::AccountId}:event-bus/default"
+                  }, 
                   "Effect": "Allow"
                 }
               ]
@@ -268,21 +244,23 @@
         "DestinationConfig": {
           "OnSuccess": {
             "Destination": {
-              "Fn::GetAtt": [
-                "DestinationLambda", 
-                "Arn"
-              ]
+              "Ref": "MyTestFunction2EventInvokeConfigOnSuccessTopic"
             }
           }, 
           "OnFailure": {
-            "Destination": "event-bus-arn"
+            "Destination": {
+              "Fn::Sub": "arn:aws:events:ap-southeast-1:${AWS::AccountId}:event-bus/default"
+            }
           }
         }, 
         "FunctionName": {
           "Ref": "MyTestFunction2"
         }, 
-        "Qualifier": "$LATEST"
-      }
+        "Qualifier": "live"
+      }, 
+      "DependsOn": [
+        "MyTestFunction2Aliaslive"
+      ]
     }, 
     "DestinationLambdaRole": {
       "Type": "AWS::IAM::Role", 
@@ -318,7 +296,7 @@
       "Type": "AWS::Lambda::Function", 
       "Properties": {
         "Code": {
-          "ZipFile": "exports.handler = function(event, context, callback) {\n    var event_received_at = new Date().toISOString();\n    console.log('Event received at: ' + event_received_at);\n    console.log('Received event:', JSON.stringify(event, null, 2));\n\n    if (event.Success) {\n        console.log(\"Success\");\n        context.callbackWaitsForEmptyEventLoop = false;\n        callback(null);\n    } else {\n        console.log(\"Failure\");\n        context.callbackWaitsForEmptyEventLoop = false;\n        callback(new Error(\"Failure from event, Success = false, I am failing!\"), 'Destination Function Error Thrown');\n    }\n};      \n"
+          "ZipFile": "exports.handler = function(event, context, callback) {\n  var event_received_at = new Date().toISOString();\n  console.log('Event received at: ' + event_received_at);\n  console.log('Received event:', JSON.stringify(event, null, 2));\n  if (event.Success) {\n      console.log(\"Success\");\n      context.callbackWaitsForEmptyEventLoop = false;\n      callback(null);\n  } else {\n      console.log(\"Failure\");\n      context.callbackWaitsForEmptyEventLoop = false;\n      callback(new Error(\"Failure from event, Success = false, I am failing!\"), 'Destination Function Error Thrown');\n  }\n};\n"
         }, 
         "Tags": [
           {
@@ -341,7 +319,7 @@
       "Type": "AWS::Lambda::Function", 
       "Properties": {
         "Code": {
-          "ZipFile": "exports.handler = function(event, context, callback) {\n    var event_received_at = new Date().toISOString();\n    console.log('Event received at: ' + event_received_at);\n    console.log('Received event:', JSON.stringify(event, null, 2));\n\n    if (event.Success) {\n        console.log(\"Success\");\n        context.callbackWaitsForEmptyEventLoop = false;\n        callback(null);\n    } else {\n        console.log(\"Failure\");\n        context.callbackWaitsForEmptyEventLoop = false;\n        callback(new Error(\"Failure from event, Success = false, I am failing!\"), 'Destination Function Error Thrown');\n    }\n};      \n"
+          "ZipFile": "exports.handler = function(event, context, callback) {\n  var event_received_at = new Date().toISOString();\n  console.log('Event received at: ' + event_received_at);\n  console.log('Received event:', JSON.stringify(event, null, 2));\n  if (event.Success) {\n      console.log(\"Success\");\n      context.callbackWaitsForEmptyEventLoop = false;\n      callback(null);\n  } else {\n      console.log(\"Failure\");\n      context.callbackWaitsForEmptyEventLoop = false;\n      callback(new Error(\"Failure from event, Success = false, I am failing!\"), 'Destination Function Error Thrown');\n  }\n};\n"
         }, 
         "Tags": [
           {
@@ -360,10 +338,33 @@
         "Runtime": "nodejs10.x"
       }
     }, 
-    "MyTestFunctionEventInvokeConfigOnFailureTopic": {
+    "MyTestFunction2Aliaslive": {
+      "Type": "AWS::Lambda::Alias", 
+      "Properties": {
+        "FunctionVersion": {
+          "Fn::GetAtt": [
+            "MyTestFunction2Versiondd8bbfad25", 
+            "Version"
+          ]
+        }, 
+        "FunctionName": {
+          "Ref": "MyTestFunction2"
+        }, 
+        "Name": "live"
+      }
+    }, 
+    "MyTestFunction2Versiondd8bbfad25": {
+      "DeletionPolicy": "Retain", 
+      "Type": "AWS::Lambda::Version", 
+      "Properties": {
+        "FunctionName": {
+          "Ref": "MyTestFunction2"
+        }
+      }
+    }, 
+    "MyTestFunction2EventInvokeConfigOnSuccessTopic": {
       "Type": "AWS::SNS::Topic", 
-      "Properties": {}, 
-      "Condition": "TopicCreationEnabled"
+      "Properties": {}
     }
   }
 }
