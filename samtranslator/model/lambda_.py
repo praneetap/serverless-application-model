@@ -97,13 +97,13 @@ class LambdaEventInvokeConfig(Resource):
 
 
 class LambdaEventInvokeConfig(Resource):
-    resource_type = 'AWS::Lambda::EventInvokeConfig'
+    resource_type = "AWS::Lambda::EventInvokeConfig"
     property_types = {
-        'DestinationConfig': PropertyType(False, is_type(dict)),
-        'FunctionName': PropertyType(True, is_str()),
-        'MaximumEventAgeInSeconds': PropertyType(False, is_type(int)),
-        'MaximumRetryAttempts': PropertyType(False, is_type(int)),
-        'Qualifier': PropertyType(True, is_str())
+        "DestinationConfig": PropertyType(False, is_type(dict)),
+        "FunctionName": PropertyType(True, is_str()),
+        "MaximumEventAgeInSeconds": PropertyType(False, is_type(int)),
+        "MaximumRetryAttempts": PropertyType(False, is_type(int)),
+        "Qualifier": PropertyType(True, is_str()),
     }
 
 
